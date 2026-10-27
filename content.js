@@ -95,13 +95,7 @@
     setTimeout(() => frame.remove(), 1000);
   }
 
-  async function printLabel() {
-    const item = readItem();
-    if (!item.name) {
-      toast('Label not printed: could not find the item number on this page.', true);
-      return;
-    }
-    await HHLabel.loadFont(getFontBytes);
+  async function printLabel(item) {
     const settings = await chrome.storage.sync.get({ rotation: 0, browserFallback: true });
     const canvas = HHLabel.render(document.createElement('canvas'), item);
 
@@ -117,18 +111,132 @@
     }
   }
 
+  // Ctrl/Cmd+Shift+P: editable preview. Lives in a shadow root so Fulcrum's
+  // styles don't leak in, and swallows key events so Fulcrum's shortcuts
+  // don't fire while typing.
+  let editor = null;
+
+  const EDITOR_CSS = `
+    .backdrop { position: fixed; inset: 0; z-index: 2147483646; background: rgba(16,24,40,.55);
+      display: flex; align-items: center; justify-content: center; font: 14px/1.4 system-ui, sans-serif; color: #1d2939; }
+    .panel { background: #fff; border-radius: 10px; padding: 20px; width: 420px; max-width: calc(100vw - 32px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.3); }
+    h2 { margin: 0 0 12px; font-size: 16px; }
+    canvas { display: block; width: 100%; aspect-ratio: 675 / 375; border: 1px solid #d0d5dd; border-radius: 14px; margin-bottom: 12px; }
+    label { display: block; font-weight: 600; font-size: 12px; margin: 10px 0 4px; }
+    input, textarea { box-sizing: border-box; width: 100%; font: inherit; padding: 6px 8px; border: 1px solid #d0d5dd; border-radius: 6px; }
+    textarea { height: 64px; resize: vertical; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    .row > div.code { flex: 0 0 120px; }
+    .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid #d0d5dd; background: #fff; cursor: pointer; }
+    button.primary { background: #1d2939; border-color: #1d2939; color: #fff; }
+    .hint { color: #667085; font-size: 12px; margin-right: auto; align-self: center; }
+  `;
+
+  function openEditor(item) {
+    if (editor) return;
+    const host = document.createElement('div');
+    const root = host.attachShadow({ mode: 'closed' });
+    root.innerHTML = `
+      <style>${EDITOR_CSS}</style>
+      <div class="backdrop">
+        <div class="panel" role="dialog" aria-label="Edit label">
+          <h2>Edit label</h2>
+          <canvas></canvas>
+          <label for="desc">Description</label>
+          <textarea id="desc"></textarea>
+          <div class="row">
+            <div><label for="name">Item number</label><input id="name"></div>
+            <div class="code"><label for="code">Box text</label><input id="code"></div>
+          </div>
+          <div class="buttons">
+            <span class="hint">Enter to print \u00b7 Esc to cancel</span>
+            <button class="cancel">Cancel</button>
+            <button class="primary print">Print</button>
+          </div>
+        </div>
+      </div>`;
+    const $ = (sel) => root.querySelector(sel);
+    const canvas = $('canvas');
+    const desc = $('#desc');
+    const name = $('#name');
+    const code = $('#code');
+    desc.value = item.description;
+    name.value = item.name;
+    code.value = HHLabel.shortCode(item.name);
+    let codeEdited = false;
+
+    const current = () => ({ itemId: item.itemId, description: desc.value, name: name.value.trim(), code: code.value.trim() });
+    const redraw = () => HHLabel.render(canvas, current());
+    const close = () => { host.remove(); editor = null; };
+    const print = () => {
+      const data = current();
+      close();
+      runPrint(data);
+    };
+
+    desc.addEventListener('input', redraw);
+    name.addEventListener('input', () => {
+      if (!codeEdited) code.value = HHLabel.shortCode(name.value);
+      redraw();
+    });
+    code.addEventListener('input', () => { codeEdited = true; redraw(); });
+    $('.cancel').addEventListener('click', close);
+    $('.print').addEventListener('click', print);
+    $('.backdrop').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) close(); });
+    root.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') close();
+      // Enter prints; Shift+Enter still adds a line break in the description.
+      else if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'BUTTON') { e.preventDefault(); print(); }
+    });
+    for (const type of ['keyup', 'keypress']) root.addEventListener(type, (e) => e.stopPropagation());
+
+    editor = { print };
+    document.documentElement.appendChild(host);
+    redraw();
+    desc.focus();
+    desc.select();
+  }
+
+  function runPrint(item) {
+    busy = true;
+    printLabel(item)
+      .catch((err) => toast(`Label not printed: ${err.message || err}`, true))
+      .finally(() => { busy = false; });
+  }
+
   window.addEventListener(
     'keydown',
     (e) => {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       if (e.key.toLowerCase() !== 'p' || !currentItemId()) return;
       e.preventDefault();
       e.stopImmediatePropagation();
       if (e.repeat || busy) return;
+      // Ctrl+P while the editor is open prints what's in it.
+      if (editor) {
+        editor.print();
+        return;
+      }
+      const item = readItem();
+      if (!item.name) {
+        toast('Label not printed: could not find the item number on this page.', true);
+        return;
+      }
       busy = true;
-      printLabel()
-        .catch((err) => toast(`Label not printed: ${err.message || err}`, true))
-        .finally(() => { busy = false; });
+      HHLabel.loadFont(getFontBytes)
+        .then(() => {
+          busy = false;
+          if (e.shiftKey) openEditor(item);
+          else runPrint(item);
+        })
+        .catch((err) => {
+          busy = false;
+          toast(`Label not printed: ${err.message || err}`, true);
+        });
     },
     true
   );

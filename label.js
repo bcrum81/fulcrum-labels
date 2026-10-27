@@ -158,7 +158,8 @@ var HHLabel = (function () {
     return s.slice(start).replace(/^[^A-Za-z0-9]+/, '') || s;
   }
 
-  // data: { description, name, itemId }
+  // data: { description, name, itemId, code? } — code overrides the black-box
+  // text, which otherwise comes from shortCode(name).
   function render(canvas, data) {
     canvas.width = W;
     canvas.height = H;
@@ -178,7 +179,7 @@ var HHLabel = (function () {
     ctx.fillText(name, PAD_LEFT, NAME_BASELINE);
 
     ctx.fillRect(BOX.x, BOX.y, BOX.w, BOX.h);
-    const tail = shortCode(name);
+    const tail = data.code != null ? data.code : shortCode(name);
     const size = fitSize(ctx, tail, 80, BOX.w - 24, BOX.h * 0.6);
     ctx.font = font(size);
     const cap = capHeight(ctx);
