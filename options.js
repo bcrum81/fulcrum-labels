@@ -3,7 +3,7 @@ const SAMPLE = {
   name: 'HH-0019-71',
   description: 'Cipher, Archon Type B w/ Enigma, Right handed',
 };
-const DEFAULTS = { printerName: '', browserFallback: true, rotate: 0, template: '' };
+const DEFAULTS = { printerName: '', browserFallback: true, rotate: 0, template: '', roll: 'Auto' };
 
 const $ = (id) => document.getElementById(id);
 
@@ -54,6 +54,7 @@ async function testPrint() {
   const settings = await chrome.storage.sync.get(DEFAULTS);
   $('browserFallback').checked = settings.browserFallback;
   $('rotate').value = String(settings.rotate);
+  $('roll').value = settings.roll;
   $('template').value = settings.template;
 
   await HHLabel.loadFont(() => fetch('fonts/Jost-700-Bold.otf').then((r) => r.arrayBuffer()));
@@ -63,6 +64,7 @@ async function testPrint() {
   $('printer').addEventListener('change', (e) => save({ printerName: e.target.value }));
   $('refresh').addEventListener('click', () => loadPrinters($('printer').value));
   $('browserFallback').addEventListener('change', (e) => save({ browserFallback: e.target.checked }));
+  $('roll').addEventListener('change', (e) => save({ roll: e.target.value }));
   $('rotate').addEventListener('change', (e) => save({ rotate: Number(e.target.value) }));
   $('template').addEventListener('change', (e) => save({ template: e.target.value }));
   $('showDefault').addEventListener('click', async () => {

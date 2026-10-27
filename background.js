@@ -108,11 +108,14 @@ async function choosePrinter(wanted) {
 }
 
 async function printLabel(png) {
-  const { printerName, template } = await chrome.storage.sync.get({ printerName: '', template: '' });
+  const { printerName, template, roll } = await chrome.storage.sync.get({ printerName: '', template: '', roll: 'Auto' });
   const base = await findDymoService();
   const printer = await choosePrinter(printerName);
   const labelXml = (template.trim() || DEFAULT_TEMPLATE).replace('{{IMAGE}}', png);
-  const body = new URLSearchParams({ printerName: printer, printParamsXml: '', labelXml, labelSetXml: '' });
+  // TwinTurboRoll only matters on a Twin Turbo; single-roll printers ignore it.
+  const printParamsXml =
+    `<LabelWriterPrintParams><Copies>1</Copies><TwinTurboRoll>${roll}</TwinTurboRoll></LabelWriterPrintParams>`;
+  const body = new URLSearchParams({ printerName: printer, printParamsXml, labelXml, labelSetXml: '' });
   const r = await fetchWithTimeout(`${base}/PrintLabel`, { method: 'POST', body }, 15000);
   const text = await r.text();
   if (!r.ok || !text.toLowerCase().includes('true')) {
