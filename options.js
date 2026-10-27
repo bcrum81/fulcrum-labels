@@ -3,7 +3,7 @@ const SAMPLE = {
   name: 'HH-0019-71',
   description: 'Cipher, Archon Type B w/ Enigma, Right handed',
 };
-const DEFAULTS = { printerName: '', browserFallback: true, rotate: 0, template: '', roll: 'Auto' };
+const DEFAULTS = { printerName: '', browserFallback: true, rotation: 0, template: '', roll: 'Auto' };
 
 const $ = (id) => document.getElementById(id);
 
@@ -42,8 +42,8 @@ async function testPrint() {
   const status = $('status');
   status.textContent = 'Printing…';
   status.className = '';
-  const { rotate } = await chrome.storage.sync.get(DEFAULTS);
-  const png = HHLabel.rotated(HHLabel.render(document.createElement('canvas'), SAMPLE), rotate)
+  const { rotation } = await chrome.storage.sync.get(DEFAULTS);
+  const png = HHLabel.rotated(HHLabel.render(document.createElement('canvas'), SAMPLE), rotation)
     .toDataURL('image/png').split(',')[1];
   const res = await chrome.runtime.sendMessage({ type: 'print', png });
   status.textContent = res.ok ? `Sent to ${res.printer}` : res.error;
@@ -53,7 +53,7 @@ async function testPrint() {
 (async function init() {
   const settings = await chrome.storage.sync.get(DEFAULTS);
   $('browserFallback').checked = settings.browserFallback;
-  $('rotate').value = String(settings.rotate);
+  $('rotate').value = String(settings.rotation);
   $('roll').value = settings.roll;
   $('template').value = settings.template;
 
@@ -65,7 +65,7 @@ async function testPrint() {
   $('refresh').addEventListener('click', () => loadPrinters($('printer').value));
   $('browserFallback').addEventListener('change', (e) => save({ browserFallback: e.target.checked }));
   $('roll').addEventListener('change', (e) => save({ roll: e.target.value }));
-  $('rotate').addEventListener('change', (e) => save({ rotate: Number(e.target.value) }));
+  $('rotate').addEventListener('change', (e) => save({ rotation: Number(e.target.value) }));
   $('template').addEventListener('change', (e) => save({ template: e.target.value }));
   $('showDefault').addEventListener('click', async () => {
     const res = await chrome.runtime.sendMessage({ type: 'defaultTemplate' });

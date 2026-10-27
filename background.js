@@ -9,13 +9,19 @@ let dymoBase = null;
 // DYMO 30334 (2-1/4" x 1-1/4") with one image covering the whole label.
 // {{IMAGE}} is replaced by the base64 PNG. Can be overridden on the options
 // page with a template exported from DYMO Connect.
+//
+// DYMO lays this label out in feed direction: 1800 twips (1.25") across,
+// 3240 (2.25") long. Bounds must use those dimensions — 3240 x 1800 gets
+// clipped to a 1800 x 1800 square and the image is squashed into the leading
+// half of the label. The landscape PNG is turned to fit with Rotation270,
+// checked against DYMO Connect's RenderLabel preview.
 const DEFAULT_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
 <DieCutLabel Version="8.0" Units="twips">
   <PaperOrientation>Landscape</PaperOrientation>
   <Id>Small30334</Id>
   <PaperName>30334 2-1/4 in x 1-1/4 in</PaperName>
   <DrawCommands>
-    <RoundRectangle X="0" Y="0" Width="3240" Height="1800" Rx="270" Ry="270" />
+    <RoundRectangle X="0" Y="0" Width="1800" Height="3240" Rx="270" Ry="270" />
   </DrawCommands>
   <ObjectInfo>
     <ImageObject>
@@ -23,7 +29,7 @@ const DEFAULT_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
       <ForeColor Alpha="255" Red="0" Green="0" Blue="0" />
       <BackColor Alpha="0" Red="255" Green="255" Blue="255" />
       <LinkedObjectName></LinkedObjectName>
-      <Rotation>Rotation0</Rotation>
+      <Rotation>Rotation270</Rotation>
       <IsMirrored>False</IsMirrored>
       <IsVariable>False</IsVariable>
       <Image>{{IMAGE}}</Image>
@@ -33,7 +39,7 @@ const DEFAULT_TEMPLATE = `<?xml version="1.0" encoding="utf-8"?>
       <HorizontalAlignment>Center</HorizontalAlignment>
       <VerticalAlignment>Center</VerticalAlignment>
     </ImageObject>
-    <Bounds X="0" Y="0" Width="3240" Height="1800" />
+    <Bounds X="0" Y="0" Width="1800" Height="3240" />
   </ObjectInfo>
 </DieCutLabel>`;
 

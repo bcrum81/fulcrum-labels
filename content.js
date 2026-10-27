@@ -102,10 +102,10 @@
       return;
     }
     await HHLabel.loadFont(getFontBytes);
-    const settings = await chrome.storage.sync.get({ rotate: 0, browserFallback: true });
+    const settings = await chrome.storage.sync.get({ rotation: 0, browserFallback: true });
     const canvas = HHLabel.render(document.createElement('canvas'), item);
 
-    const png = HHLabel.rotated(canvas, settings.rotate).toDataURL('image/png').split(',')[1];
+    const png = HHLabel.rotated(canvas, settings.rotation).toDataURL('image/png').split(',')[1];
     const res = await chrome.runtime.sendMessage({ type: 'print', png });
     if (res && res.ok) {
       toast(`Label for ${item.name} sent to ${res.printer}`);
