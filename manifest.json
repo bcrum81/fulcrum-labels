@@ -8,7 +8,7 @@
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
-      "matches": ["https://henryholsters.fulcrumpro.com/*"],
+      "matches": ["https://*.fulcrumpro.com/*"],
       "js": ["lib/qrcode.js", "label.js", "content.js"],
       "run_at": "document_start"
     }

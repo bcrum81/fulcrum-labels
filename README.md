@@ -1,6 +1,7 @@
 # Fulcrum Item Labels (Chrome extension)
 
-On any Fulcrum item page (`https://henryholsters.fulcrumpro.com/ui/items/<id>`),
+A Chrome extension for [Fulcrum](https://fulcrumpro.com) ERP users with a DYMO
+LabelWriter. On any Fulcrum item page (`https://<your-company>.fulcrumpro.com/ui/items/<id>`),
 **Ctrl+P** (Windows) or **⌘P** (Mac) prints a 2.25" × 1.25" product label on the DYMO LabelWriter instead of
 opening Chrome's print dialog. Other Fulcrum pages keep the normal shortcut.
 To print the item page itself, use Chrome's ⋮ menu → Print.
@@ -47,9 +48,12 @@ default printer and start Chrome with `--kiosk-printing`. (On a Mac, use
 
 1. Install **DYMO Connect for Desktop** (Windows) or **DYMO Connect for Mac**, and check that it can see the
    LabelWriter loaded with **30334** (2¼" × 1¼") labels.
-2. Copy this `fulcrum-labels` folder to the computer, or use this repo checkout.
+2. Download this extension: either the zip from the
+   [latest release](https://github.com/bcrum81/fulcrum-labels/releases/latest)
+   (unzip it), or **Code → Download ZIP** on GitHub, or `git clone` the repo.
 3. In Chrome, go to `chrome://extensions`, turn on **Developer mode**, click
-   **Load unpacked**, and select the folder.
+   **Load unpacked**, and select the unzipped folder (the one containing
+   `manifest.json`). Keep that folder; Chrome loads the extension from it.
 4. Open the extension's **Details → Extension options**:
    - Check that it reports the printer. Leave **Automatic** selected, or pick a
      specific printer if the computer has more than one.
@@ -71,10 +75,15 @@ default printer and start Chrome with `--kiosk-printing`. (On a Mac, use
 
 ## Files
 
-- `manifest.json`: Manifest V3. Runs on `henryholsters.fulcrumpro.com`; may only connect to `127.0.0.1`/`localhost` (the DYMO service).
+- `manifest.json`: Manifest V3. Runs on `*.fulcrumpro.com`; may only connect to `127.0.0.1`/`localhost` (the DYMO service).
 - `content.js`: handles Ctrl+P / ⌘P, reads the Item and Description fields, shows the status message, and does the Chrome-print fallback.
 - `label.js`: draws the label at 300 dpi (675 × 375 px). The content script and options page share it.
 - `background.js`: finds the DYMO Connect service, lists printers, and sends the label (as a PNG inside DYMO label XML).
 - `options.html` / `options.js`: printer choice, preview, test print, rotation, and an override for the label template.
 - `lib/qrcode.js`: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 1.4.4 (MIT).
 - `fonts/Jost-700-Bold.otf`: [Jost](https://github.com/indestructible-type/Jost), a free Futura-style font (SIL OFL, see `fonts/OFL.txt`).
+
+## License
+
+MIT, see `LICENSE`. Bundled third-party files keep their own licenses:
+qrcode-generator (MIT) and Jost (SIL Open Font License).
