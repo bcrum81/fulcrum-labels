@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Fulcrum Item Labels",
+  "version": "1.0.0",
+  "description": "Ctrl+P on a Fulcrum item page prints its 2.25\" x 1.25\" product label on a DYMO LabelWriter.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://127.0.0.1/*", "https://localhost/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://henryholsters.fulcrumpro.com/*"],
+      "js": ["lib/qrcode.js", "label.js", "content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "options_page": "options.html"
+}
