@@ -46,7 +46,10 @@
         }
       }
     }
-    return { itemId: currentItemId(), name: name || '', description: description || '' };
+    // Notes are only printed when ticked in the Ctrl+Shift+P editor, so they
+    // go in a separate field rather than `notes`, which render() prints.
+    const internalNotes = fieldValue('Internal Item Notes') || '';
+    return { itemId: currentItemId(), name: name || '', description: description || '', internalNotes };
   }
 
   function getFontBytes() {
@@ -126,6 +129,10 @@
     label { display: block; font-weight: 600; font-size: 12px; margin: 10px 0 4px; }
     input, textarea { box-sizing: border-box; width: 100%; font: inherit; padding: 6px 8px; border: 1px solid #d0d5dd; border-radius: 6px; }
     textarea { height: 64px; resize: vertical; }
+    textarea#notes { height: 48px; }
+    label.check { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13px; margin-top: 12px; cursor: pointer; }
+    label.check input { width: auto; margin: 0; }
+    [hidden] { display: none !important; }
     .row { display: flex; gap: 10px; }
     .row > div { flex: 1; }
     .row > div.code { flex: 0 0 120px; }
@@ -151,6 +158,8 @@
             <div><label for="name">Item number</label><input id="name"></div>
             <div class="code"><label for="code">Box text</label><input id="code"></div>
           </div>
+          <label class="check"><input type="checkbox" id="includeNotes"> Include Internal Notes</label>
+          <textarea id="notes" hidden aria-label="Internal notes"></textarea>
           <div class="buttons">
             <span class="hint">Enter to print \u00b7 Esc to cancel</span>
             <button class="cancel">Cancel</button>
@@ -163,12 +172,21 @@
     const desc = $('#desc');
     const name = $('#name');
     const code = $('#code');
+    const includeNotes = $('#includeNotes');
+    const notes = $('#notes');
     desc.value = item.description;
     name.value = item.name;
     code.value = HHLabel.shortCode(item.name);
+    notes.value = item.internalNotes;
     let codeEdited = false;
 
-    const current = () => ({ itemId: item.itemId, description: desc.value, name: name.value.trim(), code: code.value.trim() });
+    const current = () => ({
+      itemId: item.itemId,
+      description: desc.value,
+      name: name.value.trim(),
+      code: code.value.trim(),
+      notes: includeNotes.checked ? notes.value : '',
+    });
     const redraw = () => HHLabel.render(canvas, current());
     const close = () => { host.remove(); editor = null; };
     const print = () => {
@@ -183,6 +201,11 @@
       redraw();
     });
     code.addEventListener('input', () => { codeEdited = true; redraw(); });
+    notes.addEventListener('input', redraw);
+    includeNotes.addEventListener('change', () => {
+      notes.hidden = !includeNotes.checked;
+      redraw();
+    });
     $('.cancel').addEventListener('click', close);
     $('.print').addEventListener('click', print);
     $('.backdrop').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) close(); });

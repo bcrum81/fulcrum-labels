@@ -21,6 +21,13 @@ var HHLabel = (function () {
   const DESC_LINE_HEIGHT = 1.12; // x font size
 
   const DASH = { x: PAD_LEFT, y: 282, w: 31, h: 3 };
+
+  // Optional internal notes: small text just above the dash, left of the box.
+  const NOTES_BASELINE = 263; // last line
+  const NOTES_SIZE = 22;
+  const NOTES_MIN_SIZE = 15;
+  const NOTES_MAX_LINES = 2;
+  const NOTES_GAP = 14;       // between the description and the notes
   const NAME_BASELINE = 332;
   const NAME_SIZE = 32;
 
@@ -83,7 +90,7 @@ var HHLabel = (function () {
 
   // Lines beside the QR code get narrowWidth; lines whose tops clear qrBottom
   // get the full label width.
-  function drawDescription(ctx, text, narrowWidth, qrBottom) {
+  function drawDescription(ctx, text, narrowWidth, qrBottom, bottom) {
     ctx.fillStyle = '#000';
     ctx.textBaseline = 'alphabetic';
     let size = DESC_MAX_SIZE;
@@ -97,13 +104,13 @@ var HHLabel = (function () {
       widthFor = (n) => (lineTop(n) > qrBottom + 6 ? RIGHT - PAD_LEFT : narrowWidth);
       lines = wrap(ctx, text, widthFor);
       const height = capHeight(ctx) + (lines.length - 1) * lineHeight + size * 0.25;
-      if (DESC_TOP + height <= DESC_BOTTOM) break;
+      if (DESC_TOP + height <= bottom) break;
     }
     size = Math.max(size, DESC_MIN_SIZE);
     ctx.font = font(size);
     const lineHeight = size * DESC_LINE_HEIGHT;
     const cap = capHeight(ctx);
-    const maxLines = Math.max(1, Math.floor((DESC_BOTTOM - DESC_TOP - cap - size * 0.25) / lineHeight) + 1);
+    const maxLines = Math.max(1, Math.floor((bottom - DESC_TOP - cap - size * 0.25) / lineHeight) + 1);
     if (lines.length > maxLines) {
       lines = lines.slice(0, maxLines);
       let last = lines[maxLines - 1];
@@ -111,6 +118,33 @@ var HHLabel = (function () {
       lines[maxLines - 1] = last.trimEnd() + '…';
     }
     lines.forEach((line, i) => ctx.fillText(line, PAD_LEFT, DESC_TOP + cap + i * lineHeight));
+  }
+
+  // Draws up to NOTES_MAX_LINES lines ending at NOTES_BASELINE, shrinking
+  // before truncating. Returns the y of the top of the block.
+  function drawNotes(ctx, text, maxWidth) {
+    const widthFor = () => maxWidth;
+    let size = NOTES_SIZE;
+    let lines;
+    for (; size >= NOTES_MIN_SIZE; size--) {
+      ctx.font = font(size);
+      lines = wrap(ctx, text, widthFor);
+      if (lines.length <= NOTES_MAX_LINES) break;
+    }
+    size = Math.max(size, NOTES_MIN_SIZE);
+    ctx.font = font(size);
+    if (lines.length > NOTES_MAX_LINES) {
+      lines = lines.slice(0, NOTES_MAX_LINES);
+      let last = lines[NOTES_MAX_LINES - 1];
+      while (last && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+      lines[NOTES_MAX_LINES - 1] = last.trimEnd() + '…';
+    }
+    const lineHeight = size * 1.2;
+    const firstBaseline = NOTES_BASELINE - (lines.length - 1) * lineHeight;
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'alphabetic';
+    lines.forEach((line, i) => ctx.fillText(line, PAD_LEFT, firstBaseline + i * lineHeight));
+    return firstBaseline - capHeight(ctx);
   }
 
   function drawQr(ctx, text) {
@@ -158,7 +192,7 @@ var HHLabel = (function () {
     return s.slice(start).replace(/^[^A-Za-z0-9]+/, '') || s;
   }
 
-  // data: { description, name, itemId, code? } — code overrides the black-box
+  // data: { description, name, itemId, code?, notes? } — code overrides the black-box
   // text, which otherwise comes from shortCode(name).
   function render(canvas, data) {
     canvas.width = W;
@@ -167,17 +201,21 @@ var HHLabel = (function () {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, W, H);
 
+    const name = data.name || '';
+    const tail = (data.code != null ? data.code : shortCode(name)).trim();
+    // With no box text the box is left off and the item number and notes may
+    // use the full width.
+    const nameRight = tail ? BOX.x - 12 : RIGHT;
+
     const qr = drawQr(ctx, `ITEM-${data.itemId}`);
-    drawDescription(ctx, data.description || '', qr.left - 18 - PAD_LEFT, qr.bottom);
+    const notes = (data.notes || '').trim();
+    const notesTop = notes ? drawNotes(ctx, notes, nameRight - PAD_LEFT) : null;
+    const descBottom = notes ? Math.min(DESC_BOTTOM, notesTop - NOTES_GAP) : DESC_BOTTOM;
+    drawDescription(ctx, data.description || '', qr.left - 18 - PAD_LEFT, qr.bottom, descBottom);
 
     ctx.fillStyle = '#000';
     ctx.fillRect(DASH.x, DASH.y, DASH.w, DASH.h);
 
-    const name = data.name || '';
-    const tail = (data.code != null ? data.code : shortCode(name)).trim();
-    // With no box text the box is left off and the item number may use the
-    // full width.
-    const nameRight = tail ? BOX.x - 12 : RIGHT;
     ctx.textBaseline = 'alphabetic';
     ctx.font = font(fitSize(ctx, name, NAME_SIZE, nameRight - PAD_LEFT));
     ctx.fillText(name, PAD_LEFT, NAME_BASELINE);

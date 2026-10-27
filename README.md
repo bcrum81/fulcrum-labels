@@ -12,6 +12,11 @@ item number until you edit it yourself; clear it to print the label with no
 black box. Shift+Enter adds a line break in the
 description. Edits only change the label, never the Fulcrum item.
 
+Tick **Include Internal Notes** in that panel to add the item's **Internal Item
+Notes** (editable there too) in small text above the dash. Notes get up to two
+lines and shrink, then get cut off, to fit; the description shrinks to make
+room. Plain Ctrl+P never prints notes.
+
 ![example](example-label.png)
 
 | Label area | Source |
