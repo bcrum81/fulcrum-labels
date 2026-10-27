@@ -59,6 +59,16 @@ default printer and start Chrome with `--kiosk-printing`. (On a Mac, use
    - If the label prints sideways or upside down, change **Rotate** and test
      again.
 
+## Troubleshooting
+
+- **"service worker (inactive)" on `chrome://extensions`** is normal. Chrome
+  stops the extension's background worker when it's idle and starts it again
+  on the next print.
+- **After reloading or updating the extension, reload any open Fulcrum tabs.**
+  Fulcrum moves between items without reloading the page, so a tab opened
+  earlier keeps running the old copy of the extension, which can no longer
+  print. Ctrl+P in such a tab shows a "reload this page" message.
+
 ## Files
 
 - `manifest.json`: Manifest V3. Runs on `henryholsters.fulcrumpro.com`; may only connect to `127.0.0.1`/`localhost` (the DYMO service).

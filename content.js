@@ -239,6 +239,15 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       if (e.repeat || busy) return;
+      // After the extension is reloaded or updated, scripts already running in
+      // open tabs are cut off from it: chrome.runtime.id disappears and every
+      // extension call throws "Extension context invalidated". Fulcrum never
+      // does a full page load between items, so a tab can stay like this all
+      // day.
+      if (!chrome.runtime?.id) {
+        toast('The label extension was updated. Reload this page (Ctrl+R / ⌘R) and try again.', true);
+        return;
+      }
       // Ctrl+P while the editor is open prints what's in it.
       if (editor) {
         editor.print();
