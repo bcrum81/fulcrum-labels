@@ -8,7 +8,8 @@ To print the item page itself, use Chrome's ⋮ menu → Print.
 **Ctrl+Shift+P** (**⌘⇧P** on a Mac) opens an editable preview first. You can
 change the Description, the Item number and the black-box text, watch the label
 update, then press **Enter** or **Print** (Esc cancels). The box text follows the
-item number until you edit it yourself. Shift+Enter adds a line break in the
+item number until you edit it yourself; clear it to print the label with no
+black box. Shift+Enter adds a line break in the
 description. Edits only change the label, never the Fulcrum item.
 
 ![example](example-label.png)

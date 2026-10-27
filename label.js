@@ -174,12 +174,16 @@ var HHLabel = (function () {
     ctx.fillRect(DASH.x, DASH.y, DASH.w, DASH.h);
 
     const name = data.name || '';
+    const tail = (data.code != null ? data.code : shortCode(name)).trim();
+    // With no box text the box is left off and the item number may use the
+    // full width.
+    const nameRight = tail ? BOX.x - 12 : RIGHT;
     ctx.textBaseline = 'alphabetic';
-    ctx.font = font(fitSize(ctx, name, NAME_SIZE, BOX.x - 12 - PAD_LEFT));
+    ctx.font = font(fitSize(ctx, name, NAME_SIZE, nameRight - PAD_LEFT));
     ctx.fillText(name, PAD_LEFT, NAME_BASELINE);
+    if (!tail) return canvas;
 
     ctx.fillRect(BOX.x, BOX.y, BOX.w, BOX.h);
-    const tail = data.code != null ? data.code : shortCode(name);
     const size = fitSize(ctx, tail, 80, BOX.w - 24, BOX.h * 0.6);
     ctx.font = font(size);
     const cap = capHeight(ctx);
