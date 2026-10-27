@@ -16,8 +16,9 @@ var HHLabel = (function () {
 
   const DESC_TOP = 52;      // cap-height top of the first description line
   const DESC_BOTTOM = 245;
-  const DESC_MAX_SIZE = 40;
+  const DESC_MAX_SIZE = 60;
   const DESC_MIN_SIZE = 20;
+  const DESC_LINE_HEIGHT = 1.12; // x font size
 
   const DASH = { x: PAD_LEFT, y: 282, w: 31, h: 3 };
   const NAME_BASELINE = 332;
@@ -49,22 +50,24 @@ var HHLabel = (function () {
     return `700 ${size}px ${FONT_FAMILY}, "Futura", "Century Gothic", Arial, sans-serif`;
   }
 
-  // Greedy word wrap. Words wider than the line are broken by character.
-  function wrap(ctx, text, maxWidth) {
+  // Greedy word wrap. widthFor(n) is the width available to line n, so lines
+  // below the QR code can run wider. Words too wide for a line are broken by
+  // character.
+  function wrap(ctx, text, widthFor) {
     const lines = [];
     for (const para of text.split(/\r?\n/)) {
       let line = '';
       for (const word of para.split(/\s+/).filter(Boolean)) {
         const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth) {
+        if (ctx.measureText(test).width <= widthFor(lines.length)) {
           line = test;
           continue;
         }
         if (line) lines.push(line);
         line = word;
-        while (ctx.measureText(line).width > maxWidth && line.length > 1) {
+        while (ctx.measureText(line).width > widthFor(lines.length) && line.length > 1) {
           let i = line.length - 1;
-          while (i > 1 && ctx.measureText(line.slice(0, i)).width > maxWidth) i--;
+          while (i > 1 && ctx.measureText(line.slice(0, i)).width > widthFor(lines.length)) i--;
           lines.push(line.slice(0, i));
           line = line.slice(i);
         }
@@ -78,27 +81,33 @@ var HHLabel = (function () {
     return ctx.measureText('H').actualBoundingBoxAscent;
   }
 
-  function drawDescription(ctx, text, maxWidth) {
+  // Lines beside the QR code get narrowWidth; lines whose tops clear qrBottom
+  // get the full label width.
+  function drawDescription(ctx, text, narrowWidth, qrBottom) {
     ctx.fillStyle = '#000';
     ctx.textBaseline = 'alphabetic';
     let size = DESC_MAX_SIZE;
     let lines;
+    let widthFor;
     for (; size >= DESC_MIN_SIZE; size--) {
       ctx.font = font(size);
-      lines = wrap(ctx, text, maxWidth);
-      const lineHeight = size * 1.25;
+      const lineHeight = size * DESC_LINE_HEIGHT;
+      // Ascenders/parentheses rise ~0.2em above the cap height.
+      const lineTop = (n) => DESC_TOP + n * lineHeight - size * 0.2;
+      widthFor = (n) => (lineTop(n) > qrBottom + 6 ? RIGHT - PAD_LEFT : narrowWidth);
+      lines = wrap(ctx, text, widthFor);
       const height = capHeight(ctx) + (lines.length - 1) * lineHeight + size * 0.25;
       if (DESC_TOP + height <= DESC_BOTTOM) break;
     }
     size = Math.max(size, DESC_MIN_SIZE);
     ctx.font = font(size);
-    const lineHeight = size * 1.25;
+    const lineHeight = size * DESC_LINE_HEIGHT;
     const cap = capHeight(ctx);
     const maxLines = Math.max(1, Math.floor((DESC_BOTTOM - DESC_TOP - cap - size * 0.25) / lineHeight) + 1);
     if (lines.length > maxLines) {
       lines = lines.slice(0, maxLines);
       let last = lines[maxLines - 1];
-      while (last && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+      while (last && ctx.measureText(last + '…').width > widthFor(maxLines - 1)) last = last.slice(0, -1);
       lines[maxLines - 1] = last.trimEnd() + '…';
     }
     lines.forEach((line, i) => ctx.fillText(line, PAD_LEFT, DESC_TOP + cap + i * lineHeight));
@@ -119,7 +128,7 @@ var HHLabel = (function () {
         if (qr.isDark(r, c)) ctx.fillRect(x0 + c * m, y0 + r * m, m, m);
       }
     }
-    return x0;
+    return { left: x0, bottom: y0 + size };
   }
 
   function fitSize(ctx, text, start, maxWidth, maxCap) {
@@ -139,8 +148,8 @@ var HHLabel = (function () {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, W, H);
 
-    const qrLeft = drawQr(ctx, `ITEM-${data.itemId}`);
-    drawDescription(ctx, data.description || '', qrLeft - 18 - PAD_LEFT);
+    const qr = drawQr(ctx, `ITEM-${data.itemId}`);
+    drawDescription(ctx, data.description || '', qr.left - 18 - PAD_LEFT, qr.bottom);
 
     ctx.fillStyle = '#000';
     ctx.fillRect(DASH.x, DASH.y, DASH.w, DASH.h);
