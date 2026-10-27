@@ -11,7 +11,7 @@ To print the item page itself, use Chrome's ⋮ menu → Print.
 |---|---|
 | Main text | the item's **Description** field (shrinks to fit, up to ~5 lines) |
 | Lower left | the **Item** number, e.g. `HH-0019-71` |
-| Black box, lower right | the last 5 characters of the item number (`19-71`) |
+| Black box, lower right | the last 5 characters of the item number (`HH-0019-71` → `19-71`). A number cut in half keeps its significant digits (`X_PHL-0120-08` → `120-08`), and a leading `-` or `_` is dropped (`MFR-2985` → `2985`) |
 | QR code | `ITEM-` + the item id from the URL (`ITEM-6a833274cc252675a0041033`) |
 
 The label shows what's in the Description and Item fields when you press

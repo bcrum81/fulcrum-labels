@@ -140,6 +140,24 @@ var HHLabel = (function () {
     return size;
   }
 
+  // Text for the black box: the last 5 characters of the item number, except
+  // that a number cut in half is widened to its significant digits (leading
+  // zeros dropped), and leading separators are removed.
+  //   HH-0001-01 -> 01-01    X_PHL-0120-08 -> 120-08    MFR-2985 -> 2985
+  function shortCode(name) {
+    const s = name.trim();
+    const isDigit = (c) => c >= '0' && c <= '9';
+    let start = Math.max(0, s.length - 5);
+    if (start > 0 && isDigit(s[start]) && isDigit(s[start - 1])) {
+      let runStart = start;
+      while (runStart > 0 && isDigit(s[runStart - 1])) runStart--;
+      let firstSignificant = runStart;
+      while (firstSignificant < start && s[firstSignificant] === '0') firstSignificant++;
+      start = firstSignificant;
+    }
+    return s.slice(start).replace(/^[^A-Za-z0-9]+/, '') || s;
+  }
+
   // data: { description, name, itemId }
   function render(canvas, data) {
     canvas.width = W;
@@ -160,7 +178,7 @@ var HHLabel = (function () {
     ctx.fillText(name, PAD_LEFT, NAME_BASELINE);
 
     ctx.fillRect(BOX.x, BOX.y, BOX.w, BOX.h);
-    const tail = name.slice(-5);
+    const tail = shortCode(name);
     const size = fitSize(ctx, tail, 80, BOX.w - 24, BOX.h * 0.6);
     ctx.font = font(size);
     const cap = capHeight(ctx);
@@ -186,5 +204,5 @@ var HHLabel = (function () {
     return out;
   }
 
-  return { W, H, loadFont, render, rotated };
+  return { W, H, loadFont, render, rotated, shortCode };
 })();
